@@ -4,7 +4,7 @@ from app.models import Department, Equipment, DepartmentEquipment, Factory
 from app.database import get_db
 from typing import List
 from sqlalchemy.future import select
-from app.schemas import DepartmentResponse, DepartmentCreateDepartment
+from app.schemas import DepartmentResponse, DepartmentCreateDepartment, DepartmentSearchResponse
 
 department_router = APIRouter(prefix="/departments", tags=["Departments"])
 
@@ -48,3 +48,12 @@ async def create_departments(departments_data: List[DepartmentCreateDepartment],
 
     await db.commit()
     return created_departments
+
+@department_router.get("/search", response_model=List[DepartmentSearchResponse])
+async def search_departments(search: str, db: AsyncSession = Depends(get_db)):
+    query = select(Department).where(Department.name.ilike(f"%{search}%"))
+    result = await db.execute(query)
+    departments = result.scalars().all()
+    if not departments:
+        raise HTTPException(status_code=404, detail=f"Department {search} not found")
+    return [{"id": d.id, "name": d.name, "factory_id": d.factory_id} for d in departments]

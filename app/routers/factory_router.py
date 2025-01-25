@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Factory, Department, Equipment, DepartmentEquipment
-from app.schemas import FactoryResponse, FactoryCreate
+from app.schemas import FactoryResponse, FactoryCreate, FactorySearchResponse
 from app.database import get_db
 from typing import List
+from sqlalchemy.future import select
 
 factory_router = APIRouter(prefix="/factories", tags=["Factories"])
 
@@ -53,3 +54,12 @@ async def create_factories(factories_data: List[FactoryCreate], db: AsyncSession
 
     await db.commit()
     return created_factories
+
+@factory_router.get("/search", response_model=List[FactorySearchResponse])
+async def search_factories(search: str, db: AsyncSession = Depends(get_db)):
+    query = select(Factory).where(Factory.name.ilike(f"%{search}%"))
+    result = await db.execute(query)
+    factories = result.scalars().all()
+    if not factories:
+        raise HTTPException(status_code=404, detail=f"Factory {search} not found")
+    return [{"id": f.id, "name": f.name} for f in factories]

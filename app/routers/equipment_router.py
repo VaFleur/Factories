@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Equipment, Department, DepartmentEquipment
-from app.schemas import EquipmentResponse, EquipmentCreate
+from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse
 from app.database import get_db
 from sqlalchemy.future import select
 
@@ -36,3 +36,12 @@ async def create_equipments(equipments_data: List[EquipmentCreate], db: AsyncSes
 
     await db.commit()
     return created_equipments
+
+@equipment_router.get("/search", response_model=List[EquipmentSearchResponse])
+async def search_equipments(search: str, db: AsyncSession = Depends(get_db)):
+    query = select(Equipment).where(Equipment.name.ilike(f"%{search}%"))
+    result = await db.execute(query)
+    equipments = result.scalars().all()
+    if not equipments:
+        raise HTTPException(status_code=404, detail=f"Equipment {search} not found")
+    return [{"id": e.id, "name": e.name} for e in equipments]
