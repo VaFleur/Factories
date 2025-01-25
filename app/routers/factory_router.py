@@ -41,6 +41,7 @@ async def create_factories(factories_data: List[FactoryCreate], db: AsyncSession
                 created_departments.append({
                     "id": db_department.id,
                     "name": db_department.name,
+                    "factory_id": db_factory.id,
                     "equipments": created_equipments
                 })
 

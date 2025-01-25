@@ -1,25 +1,44 @@
 from pydantic import BaseModel
 from typing import List
 
+# Schemas for /equipments/
+class DepartmentLink(BaseModel):
+    department_id: int
+
 class EquipmentCreate(BaseModel):
     name: str
+    departments: List[DepartmentLink] = []
+
+# Schemas for /departments/
+class EquipmentCreateDepartment(BaseModel):
+    name: str
+
+class DepartmentCreateDepartment(BaseModel):
+    name: str
+    factory_id: int
+    equipments: List[EquipmentCreateDepartment] = []
 
 class EquipmentResponse(BaseModel):
     id: int
     name: str
 
-class DepartmentCreate(BaseModel):
-    name: str
-    equipments: List[EquipmentCreate] = []
-
 class DepartmentResponse(BaseModel):
     id: int
     name: str
+    factory_id: int
     equipments: List[EquipmentResponse]
+
+# Schemas for /factories/
+class EquipmentCreateFactory(BaseModel):
+    name: str
+
+class DepartmentCreateFactory(BaseModel):
+    name: str
+    equipments: List[EquipmentCreateFactory] = []
 
 class FactoryCreate(BaseModel):
     name: str
-    departments: List[DepartmentCreate] = []
+    departments: List[DepartmentCreateFactory] = []
 
 class FactoryResponse(BaseModel):
     id: int
