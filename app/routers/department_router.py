@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Department, Equipment, DepartmentEquipment, Factory
 from app.database import get_db
@@ -126,3 +127,18 @@ async def update_department(department_id: int, department_data: DepartmentUpdat
     await db.refresh(department)
 
     return department
+
+
+@department_router.delete("/{department_id}")
+async def delete_department(department_id: int, db: AsyncSession = Depends(get_db)):
+    query = select(Department).where(Department.id == department_id)
+    result = await db.execute(query)
+    department = result.scalars().first()
+
+    if not department:
+        raise HTTPException(status_code=404, detail=f"Department with id {department_id} not found")
+
+    await db.execute(delete(Department).where(Department.id == department_id))
+    await db.commit()
+
+    return {"message": f"Department with id {department_id} successfully deleted"}

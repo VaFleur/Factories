@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Factory, Department, Equipment, DepartmentEquipment
 from app.schemas import FactoryResponse, FactoryCreate, FactorySearchResponse, FactoryDeepResponse, FactoryUpdate
@@ -125,3 +126,18 @@ async def update_factory(factory_id: int, factory_data: FactoryUpdate, db: Async
     await db.refresh(factory)
 
     return factory
+
+
+@factory_router.delete("/{factory_id}")
+async def delete_factory(factory_id: int, db: AsyncSession = Depends(get_db)):
+    query = select(Factory).where(Factory.id == factory_id)
+    result = await db.execute(query)
+    factory = result.scalars().first()
+
+    if not factory:
+        raise HTTPException(status_code=404, detail=f"Factory with id {factory_id} not found")
+
+    await db.execute(delete(Factory).where(Factory.id == factory_id))
+    await db.commit()
+
+    return {"message": f"Factory with id {factory_id} successfully deleted"}

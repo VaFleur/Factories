@@ -1,5 +1,6 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Equipment, Department, DepartmentEquipment, Factory
 from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse, EquipmentDeepResponse, \
@@ -127,3 +128,18 @@ async def update_equipment(equipment_id: int, equipment_data: EquipmentUpdate, d
     await db.refresh(equipment)
 
     return equipment
+
+
+@equipment_router.delete("/{equipment_id}")
+async def delete_equipment(equipment_id: int, db: AsyncSession = Depends(get_db)):
+    query = select(Equipment).where(Equipment.id == equipment_id)
+    result = await db.execute(query)
+    equipment = result.scalars().first()
+
+    if not equipment:
+        raise HTTPException(status_code=404, detail=f"Equipment with id {equipment_id} not found")
+
+    await db.execute(delete(Equipment).where(Equipment.id == equipment_id))
+    await db.commit()
+
+    return {"message": f"Equipment with id {equipment_id} successfully deleted"}
