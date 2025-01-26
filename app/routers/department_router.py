@@ -76,7 +76,6 @@ async def search_department_by_id(department_id: int, depth: int = 0, db: AsyncS
     }
 
     if depth >= 1:
-        # Fetch factory
         query_factory = select(Factory).where(Factory.id == department.factory_id)
         result_factory = await db.execute(query_factory)
         factory = result_factory.scalars().first()
@@ -87,7 +86,6 @@ async def search_department_by_id(department_id: int, depth: int = 0, db: AsyncS
                 "name": factory.name
             }
 
-        # Fetch equipments of the department
         query_equipments = select(Equipment).join(DepartmentEquipment).where(DepartmentEquipment.department_id == department.id)
         result_equipments = await db.execute(query_equipments)
         equipments = result_equipments.scalars().all()

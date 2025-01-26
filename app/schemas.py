@@ -64,10 +64,16 @@ class SearchRequest(BaseModel):
     search: str
 
 # Schemas for deep search response
+class EquipmentToDepartmentToFactoryDeepResponse(BaseModel):
+    id: int
+    name: str
+    factory_id: int
+    factory: Optional[FactorySearchResponse] = None
+
 class EquipmentDeepResponse(BaseModel):
     id: int
     name: str
-    departments: List[DepartmentSearchResponse] = []
+    departments: List[EquipmentToDepartmentToFactoryDeepResponse] = []
 
 class DepartmentDeepResponse(BaseModel):
     id: int
@@ -80,3 +86,5 @@ class FactoryDeepResponse(BaseModel):
     id: int
     name: str
     departments: List[DepartmentDeepResponse] = []
+
+
