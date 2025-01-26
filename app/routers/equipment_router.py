@@ -21,15 +21,18 @@ async def create_equipments(equipments_data: List[EquipmentCreate], db: AsyncSes
             await db.flush()
 
             for department_link in equipment_data.departments:
-                query = select(Department).where(Department.id == department_link.department_id)
-                result = await db.execute(query)
-                department = result.scalars().first()
+                if department_link.department_id is not None:
+                    query = select(Department).where(Department.id == department_link.department_id)
+                    result = await db.execute(query)
+                    department = result.scalars().first()
 
-                if not department:
-                    raise HTTPException(status_code=404, detail=f"Department with id {department_link.department_id} not found")
+                    if not department:
+                        raise HTTPException(status_code=404,
+                                            detail=f"Department with id {department_link.department_id} not found")
 
-                db_relation = DepartmentEquipment(department_id=department_link.department_id, equipment_id=db_equipment.id)
-                db.add(db_relation)
+                    db_relation = DepartmentEquipment(department_id=department_link.department_id,
+                                                             equipment_id=db_equipment.id)
+                    db.add(db_relation)
 
             created_equipments.append({
                 "id": db_equipment.id,
