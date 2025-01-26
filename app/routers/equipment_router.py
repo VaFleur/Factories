@@ -1,8 +1,8 @@
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import Equipment, Department, DepartmentEquipment
-from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse
+from app.models import Equipment, Department, DepartmentEquipment, Factory
+from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse, EquipmentDeepResponse
 from app.database import get_db
 from sqlalchemy.future import select
 
@@ -45,3 +45,50 @@ async def search_equipments(search: str, db: AsyncSession = Depends(get_db)):
     if not equipments:
         raise HTTPException(status_code=404, detail=f"Equipment {search} not found")
     return [{"id": e.id, "name": e.name} for e in equipments]
+
+
+@equipment_router.get("/{equipment_id}", response_model=EquipmentDeepResponse, response_model_exclude_defaults=True)
+async def search_equipment_by_id(equipment_id: int, depth: int = 0, db: AsyncSession = Depends(get_db)):
+    query = select(Equipment).where(Equipment.id == equipment_id)
+    result = await db.execute(query)
+    equipment = result.scalars().first()
+
+    if not equipment:
+        raise HTTPException(status_code=404, detail=f"Equipment with id {equipment_id} not found")
+
+    equipment_response = {
+        "id": equipment.id,
+        "name": equipment.name,
+        "departments": []
+    }
+
+    if depth >= 1:
+        # Fetch departments of the equipment
+        query_departments = select(Department).join(
+            DepartmentEquipment
+        ).where(DepartmentEquipment.equipment_id == equipment.id)
+        result_departments = await db.execute(query_departments)
+        departments = result_departments.scalars().all()
+
+        for department in departments:
+            department_response = {
+                "id": department.id,
+                "name": department.name,
+                "factory_id": department.factory_id
+            }
+
+            if depth >= 2:
+                # Fetch factory of the department
+                query_factory = select(Factory).where(Factory.id == department.factory_id)
+                result_factory = await db.execute(query_factory)
+                factory = result_factory.scalars().first()
+
+                if factory:
+                    department_response["factory"] = {
+                        "id": factory.id,
+                        "name": factory.name
+                    }
+
+            equipment_response["departments"].append(department_response)
+
+    return equipment_response

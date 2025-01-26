@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
+
 
 # Schemas for /equipments
 class DepartmentLink(BaseModel):
@@ -61,3 +62,21 @@ class FactorySearchResponse(BaseModel):
 # Schemas for search
 class SearchRequest(BaseModel):
     search: str
+
+# Schemas for deep search response
+class EquipmentDeepResponse(BaseModel):
+    id: int
+    name: str
+    departments: List[DepartmentSearchResponse] = []
+
+class DepartmentDeepResponse(BaseModel):
+    id: int
+    name: str
+    factory_id: int
+    factory: Optional[FactorySearchResponse] = None
+    equipments: List[EquipmentSearchResponse] = []
+
+class FactoryDeepResponse(BaseModel):
+    id: int
+    name: str
+    departments: List[DepartmentDeepResponse] = []

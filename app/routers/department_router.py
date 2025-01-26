@@ -4,7 +4,7 @@ from app.models import Department, Equipment, DepartmentEquipment, Factory
 from app.database import get_db
 from typing import List
 from sqlalchemy.future import select
-from app.schemas import DepartmentResponse, DepartmentCreateDepartment, DepartmentSearchResponse
+from app.schemas import DepartmentResponse, DepartmentCreateDepartment, DepartmentSearchResponse, DepartmentDeepResponse
 
 department_router = APIRouter(prefix="/departments", tags=["Departments"])
 
@@ -57,3 +57,46 @@ async def search_departments(search: str, db: AsyncSession = Depends(get_db)):
     if not departments:
         raise HTTPException(status_code=404, detail=f"Department {search} not found")
     return [{"id": d.id, "name": d.name, "factory_id": d.factory_id} for d in departments]
+
+
+@department_router.get("/{department_id}", response_model=DepartmentDeepResponse, response_model_exclude_defaults=True)
+async def search_department_by_id(department_id: int, depth: int = 0, db: AsyncSession = Depends(get_db)):
+    query = select(Department).where(Department.id == department_id)
+    result = await db.execute(query)
+    department = result.scalars().first()
+
+    if not department:
+        raise HTTPException(status_code=404, detail=f"Department with id {department_id} not found")
+
+    department_response = {
+        "id": department.id,
+        "name": department.name,
+        "factory_id": department.factory_id,
+        "equipments": []
+    }
+
+    if depth >= 1:
+        # Fetch factory
+        query_factory = select(Factory).where(Factory.id == department.factory_id)
+        result_factory = await db.execute(query_factory)
+        factory = result_factory.scalars().first()
+
+        if factory:
+            department_response["factory"] = {
+                "id": factory.id,
+                "name": factory.name
+            }
+
+        # Fetch equipments of the department
+        query_equipments = select(Equipment).join(DepartmentEquipment).where(DepartmentEquipment.department_id == department.id)
+        result_equipments = await db.execute(query_equipments)
+        equipments = result_equipments.scalars().all()
+
+        for equipment in equipments:
+            department_response["equipments"].append({
+                "id": equipment.id,
+                "name": equipment.name
+            })
+
+    return department_response
+
