@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import query_expression
+
 from app.models import Factory, Department, Equipment, DepartmentEquipment
 from app.schemas import FactoryResponse, FactoryCreate, FactorySearchResponse, FactoryDeepResponse, FactoryUpdate
 from app.database import get_db
@@ -55,6 +57,15 @@ async def create_factories(factories_data: List[FactoryCreate], db: AsyncSession
 
     await db.commit()
     return created_factories
+
+@factory_router.get("", response_model=List[FactorySearchResponse])
+async def get_all_factories(db: AsyncSession = Depends(get_db)):
+    query = select(Factory)
+    result = await db.execute(query)
+    factories = result.scalars().all()
+    if not factories:
+        raise HTTPException(status_code=404, detail="No factory found")
+    return [{"id": f.id, "name": f.name} for f in factories]
 
 @factory_router.get("/search", response_model=List[FactorySearchResponse])
 async def search_factories(search: str, db: AsyncSession = Depends(get_db)):

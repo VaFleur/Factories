@@ -42,6 +42,15 @@ async def create_equipments(equipments_data: List[EquipmentCreate], db: AsyncSes
     await db.commit()
     return created_equipments
 
+@equipment_router.get("", response_model=List[EquipmentSearchResponse])
+async def get_all_equipments(db: AsyncSession = Depends(get_db)):
+    query = select(Equipment)
+    result = await db.execute(query)
+    equipments = result.scalars().all()
+    if not equipments:
+        raise HTTPException(status_code=404, detail="No equipment found")
+    return [{"id": e.id, "name": e.name} for e in equipments]
+
 @equipment_router.get("/search", response_model=List[EquipmentSearchResponse])
 async def search_equipments(search: str, db: AsyncSession = Depends(get_db)):
     query = select(Equipment).where(Equipment.name.ilike(f"%{search}%"))

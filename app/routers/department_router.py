@@ -53,6 +53,15 @@ async def create_departments(departments_data: List[DepartmentCreateDepartment],
     await db.commit()
     return created_departments
 
+@department_router.get("", response_model=List[DepartmentSearchResponse])
+async def get_all_departments(db: AsyncSession = Depends(get_db)):
+    query = select(Department)
+    result = await db.execute(query)
+    departments = result.scalars().all()
+    if not departments:
+        raise HTTPException(status_code=404, detail="No department found")
+    return [{"id": d.id, "name": d.name, "factory_id": d.factory_id} for d in departments]
+
 @department_router.get("/search", response_model=List[DepartmentSearchResponse])
 async def search_departments(search: str, db: AsyncSession = Depends(get_db)):
     query = select(Department).where(Department.name.ilike(f"%{search}%"))
