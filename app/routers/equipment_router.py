@@ -2,7 +2,8 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Equipment, Department, DepartmentEquipment, Factory
-from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse, EquipmentDeepResponse
+from app.schemas import EquipmentResponse, EquipmentCreate, EquipmentSearchResponse, EquipmentDeepResponse, \
+    EquipmentUpdate
 from app.database import get_db
 from sqlalchemy.future import select
 
@@ -90,3 +91,39 @@ async def search_equipment_by_id(equipment_id: int, depth: int = 0, db: AsyncSes
             equipment_response["departments"].append(department_response)
 
     return equipment_response
+
+
+@equipment_router.put("/{equipment_id}", response_model=EquipmentSearchResponse)
+async def update_equipment(equipment_id: int, equipment_data: EquipmentUpdate, db: AsyncSession = Depends(get_db)):
+    query = select(Equipment).where(Equipment.id == equipment_id)
+    result = await db.execute(query)
+    equipment = result.scalars().first()
+
+    if not equipment:
+        raise HTTPException(status_code=404, detail=f"Equipment with id {equipment_id} not found")
+
+    if equipment_data.name is not None:
+        equipment.name = equipment_data.name
+
+    if equipment_data.departments is not None:
+        query_remove_relations = DepartmentEquipment.__table__.delete().where(
+            DepartmentEquipment.equipment_id == equipment.id
+        )
+        await db.execute(query_remove_relations)
+
+        for department_link in equipment_data.departments:
+            query_department = select(Department).where(Department.id == department_link.department_id)
+            result_department = await db.execute(query_department)
+            department = result_department.scalars().first()
+
+            if not department:
+                raise HTTPException(status_code=404,
+                                    detail=f"Department with id {department_link.department_id} not found")
+
+            db_relation = DepartmentEquipment(department_id=department.id, equipment_id=equipment.id)
+            db.add(db_relation)
+
+    await db.commit()
+    await db.refresh(equipment)
+
+    return equipment

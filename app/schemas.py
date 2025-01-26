@@ -14,6 +14,13 @@ class EquipmentSearchResponse(BaseModel):
     id: int
     name: str
 
+    class Config:
+        orm_mode = True
+
+class EquipmentUpdate(BaseModel):
+    name: Optional[str] = None
+    departments: Optional[List[DepartmentLink]] = None
+
 # Schemas for /departments
 class EquipmentCreateDepartment(BaseModel):
     name: str
@@ -38,6 +45,13 @@ class DepartmentSearchResponse(BaseModel):
     name: str
     factory_id: int
 
+    class Config:
+        orm_mode = True
+
+class DepartmentUpdate(BaseModel):
+    name: Optional[str] = None
+    factory_id: Optional[int] = None
+
 # Schemas for /factories
 class EquipmentCreateFactory(BaseModel):
     name: str
@@ -58,6 +72,12 @@ class FactoryResponse(BaseModel):
 class FactorySearchResponse(BaseModel):
     id: int
     name: str
+
+    class Config:
+        orm_mode = True
+
+class FactoryUpdate(BaseModel):
+    name: Optional[str] = None
 
 # Schemas for search
 class SearchRequest(BaseModel):

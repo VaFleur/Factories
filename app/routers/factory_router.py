@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Factory, Department, Equipment, DepartmentEquipment
-from app.schemas import FactoryResponse, FactoryCreate, FactorySearchResponse, FactoryDeepResponse
+from app.schemas import FactoryResponse, FactoryCreate, FactorySearchResponse, FactoryDeepResponse, FactoryUpdate
 from app.database import get_db
 from typing import List
 from sqlalchemy.future import select
@@ -10,40 +10,6 @@ factory_router = APIRouter(prefix="/factories", tags=["Factories"])
 
 @factory_router.post("", response_model=List[FactoryResponse])
 async def create_factories(factories_data: List[FactoryCreate], db: AsyncSession = Depends(get_db)):
-    '''
-    Эндпоинт позволяет создать одну или множество фабрик со вложенными структурами участков или оборудования. Пример запроса:
-    [
-      {
-        "name": "Ф1",
-        "departments": [
-          {
-            "name": "У1",
-            "equipments": [
-              { "name": "О1" },
-              { "name": "О2" }
-            ]
-          },
-          {
-            "name": "У2",
-            "equipments": [
-              { "name": "О3" }
-            ]
-          }
-        ]
-      },
-      {
-        "name": "Ф2",
-        "departments": [
-          {
-            "name": "У3",
-            "equipments": [
-              { "name": "О4" }
-            ]
-          }
-        ]
-      }
-    ]
-    '''
     created_factories = []
 
     async with db.begin():
@@ -141,3 +107,21 @@ async def search_factory_by_id(factory_id: int, depth: int = 0, db: AsyncSession
             factory_response["departments"].append(department_response)
 
     return factory_response
+
+
+@factory_router.put("/{factory_id}", response_model=FactorySearchResponse)
+async def update_factory(factory_id: int, factory_data: FactoryUpdate, db: AsyncSession = Depends(get_db)):
+    query = select(Factory).where(Factory.id == factory_id)
+    result = await db.execute(query)
+    factory = result.scalars().first()
+
+    if not factory:
+        raise HTTPException(status_code=404, detail=f"Factory with id {factory_id} not found")
+
+    if factory_data.name is not None:
+        factory.name = factory_data.name
+
+    await db.commit()
+    await db.refresh(factory)
+
+    return factory

@@ -4,7 +4,8 @@ from app.models import Department, Equipment, DepartmentEquipment, Factory
 from app.database import get_db
 from typing import List
 from sqlalchemy.future import select
-from app.schemas import DepartmentResponse, DepartmentCreateDepartment, DepartmentSearchResponse, DepartmentDeepResponse
+from app.schemas import DepartmentResponse, DepartmentCreateDepartment, DepartmentSearchResponse, \
+    DepartmentDeepResponse, DepartmentUpdate
 
 department_router = APIRouter(prefix="/departments", tags=["Departments"])
 
@@ -98,3 +99,30 @@ async def search_department_by_id(department_id: int, depth: int = 0, db: AsyncS
 
     return department_response
 
+
+@department_router.put("/{department_id}", response_model=DepartmentSearchResponse)
+async def update_department(department_id: int, department_data: DepartmentUpdate, db: AsyncSession = Depends(get_db)):
+    query = select(Department).where(Department.id == department_id)
+    result = await db.execute(query)
+    department = result.scalars().first()
+
+    if not department:
+        raise HTTPException(status_code=404, detail=f"Department with id {department_id} not found")
+
+    if department_data.name is not None:
+        department.name = department_data.name
+
+    if department_data.factory_id is not None:
+        query_factory = select(Factory).where(Factory.id == department_data.factory_id)
+        result_factory = await db.execute(query_factory)
+        factory = result_factory.scalars().first()
+
+        if not factory:
+            raise HTTPException(status_code=404, detail=f"Factory with id {department_data.factory_id} not found")
+
+        department.factory_id = department_data.factory_id
+
+    await db.commit()
+    await db.refresh(department)
+
+    return department
