@@ -4,11 +4,11 @@ from typing import List, Optional
 
 # Schemas for /equipments
 class DepartmentLink(BaseModel):
-    department_id: int
+    department_id: Optional[int] = None
 
 class EquipmentCreate(BaseModel):
     name: str
-    departments: List[DepartmentLink] = []
+    departments: Optional[List[DepartmentLink]] = []
 
 class EquipmentSearchResponse(BaseModel):
     id: int
@@ -27,7 +27,7 @@ class EquipmentCreateDepartment(BaseModel):
 
 class DepartmentCreateDepartment(BaseModel):
     name: str
-    factory_id: int
+    factory_id: Optional[int] = None
     equipments: List[EquipmentCreateDepartment] = []
 
 class EquipmentResponse(BaseModel):
@@ -37,13 +37,13 @@ class EquipmentResponse(BaseModel):
 class DepartmentResponse(BaseModel):
     id: int
     name: str
-    factory_id: int
-    equipments: List[EquipmentResponse]
+    factory_id: Optional[int] = None
+    equipments: Optional[List[EquipmentResponse]] = None
 
 class DepartmentSearchResponse(BaseModel):
     id: int
     name: str
-    factory_id: int
+    factory_id: Optional[int] = None
 
     class Config:
         orm_mode = True

@@ -16,12 +16,14 @@ async def create_departments(departments_data: List[DepartmentCreateDepartment],
 
     async with db.begin():
         for department_data in departments_data:
-            query = select(Factory).where(Factory.id == department_data.factory_id)
-            result = await db.execute(query)
-            factory = result.scalars().first()
+            if department_data.factory_id is not None:
+                query = select(Factory).where(Factory.id == department_data.factory_id)
+                result = await db.execute(query)
+                factory = result.scalars().first()
 
-            if not factory:
-                raise HTTPException(status_code=404, detail=f"Factory with id {department_data.factory_id} not found")
+                if not factory:
+                    raise HTTPException(status_code=404,
+                                        detail=f"Factory with id {department_data.factory_id} not found")
 
             db_department = Department(name=department_data.name, factory_id=department_data.factory_id)
             db.add(db_department)
